@@ -41,6 +41,17 @@ mod tests {
     }
 
     #[test]
+    fn test_identifier_string() {
+        let identifier_string = "local test = \"tom\"";
+        let (remainder, identifier) = parse_identifier(identifier_string).unwrap();
+        assert_eq!(identifier.name, "test");
+        assert_eq!(
+            identifier.value,
+            IdentifierValues::String(String::from("tom"))
+        );
+    }
+
+    #[test]
     fn test_string() {
         let str = "\"string thing   thing\"";
         let (_, parsed_str) = parse_string::<()>(str).unwrap();
