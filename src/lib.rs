@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 mod identifiers;
+mod line_parser;
 mod number_parser;
 mod string_parser;
 
@@ -9,7 +10,7 @@ use number_parser::parse_number;
 use std::sync::mpsc::RecvError;
 use string_parser::parse_string;
 
-use nom::character::complete::multispace1;
+use nom::character::complete::{multispace1, newline};
 use nom::combinator::opt;
 use nom::sequence::delimited;
 use nom::{
@@ -24,13 +25,44 @@ use nom::{
     IResult,
 };
 
+fn newline_test(input: &str) -> IResult<&str, char> {
+    newline(input)
+}
+
 #[cfg(test)]
 mod tests {
+    use nom::character::complete::newline;
+
     use crate::{
         identifier_name,
         identifiers::{parse_identifier, IdentifierValues},
-        parse_number, parse_string,
+        line_parser, newline_test, parse_number, parse_string,
     };
+
+    #[test]
+    fn test_multiline_identifiers() {
+        let lines = "local test = 1\nlocal other_test = \"2\"\n";
+        let (remaining_lines, line_1) = line_parser::parse_line(lines).unwrap();
+        let (remainder, identifier_1) = parse_identifier(line_1).unwrap();
+        let (_, line_2) = line_parser::parse_line(remaining_lines).unwrap();
+        let (remainder, identifier_2) = parse_identifier(line_2).unwrap();
+        assert_eq!(identifier_1.name, "test");
+        assert_eq!(identifier_1.value, IdentifierValues::Number(1 as f32));
+        assert_eq!(identifier_2.name, "other_test");
+        assert_eq!(
+            identifier_2.value,
+            IdentifierValues::String(String::from("2"))
+        );
+    }
+
+    #[test]
+    fn test_line() {
+        let lines = "local test = 1\nlocal other_test = 2\n";
+        let (remaining_lines, line_1) = line_parser::parse_line(lines).unwrap();
+        let (_, line_2) = line_parser::parse_line(remaining_lines).unwrap();
+        assert_eq!(line_1, "local test = 1");
+        assert_eq!(line_2, "local other_test = 2");
+    }
 
     #[test]
     fn test_identifier_number() {
