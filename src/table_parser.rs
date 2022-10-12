@@ -11,19 +11,19 @@ use crate::{
     function_parser::Function,
     identifier_parser::{parse_equals, parse_identifier_value, parse_name, IdentifierValues},
 };
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TableMemberType {
     RawType(IdentifierValues),
     NestedTable(Table),
     Function(Function),
     Method(Function),
 }
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct TableMember {
     pub name: String,
     pub is_a: TableMemberType,
 }
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Table {
     pub name: String,
     pub members: Vec<TableMember>,

@@ -2,7 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use nom::{
     branch::alt,
-    bytes::complete::tag,
+    bytes::complete::{tag, take, take_until},
     character::complete::{alpha1, alphanumeric1, multispace0},
     combinator::{map, opt, recognize},
     multi::{many0, many0_count},
@@ -11,17 +11,17 @@ use nom::{
 };
 
 use crate::{
-    identifier_parser::{parse_identifier, Identifier},
+    identifier_parser::{parse_identifier, Identifier, IdentifierValues},
     types::Types,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionArguments {
     pub name: String,
     pub function_type: Types,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Function {
     pub name: String,
     pub return_type: Types,
@@ -98,7 +98,7 @@ pub fn parse_function_definition(input: &str) -> IResult<&str, Function> {
             many0_count(alt((alphanumeric1, tag("_")))),
         )),
         preceded(tag("("), argument_possibilities),
-        opt(tuple((alt((tag(":"), tag(": "))), alpha1))),
+        opt(tuple((alt((tag(": "), tag(":"))), alpha1))),
         opt(multispace0),
     ))(input)?;
 
@@ -109,6 +109,7 @@ pub fn parse_function_definition(input: &str) -> IResult<&str, Function> {
         identifiers: HashMap::new(),
     };
 
+    println!("{} {:?}", remainder, return_type);
     match return_type {
         Some((_, s)) => {
             func.return_type = match Types::from_str(s) {
@@ -124,13 +125,16 @@ pub fn parse_function_definition(input: &str) -> IResult<&str, Function> {
 
 pub fn parse_function(input: &str) -> IResult<&str, Function> {
     let (remainder, mut function) = parse_function_definition(input)?;
-    let (remainder, identifiers) = many0(parse_identifier)(remainder)?;
+    let (remainder_2, (bytes, _end)) = tuple((take_until("end"), take(3 as u16)))(remainder)?;
+    let (_, identifiers) = many0(parse_identifier)(bytes)?;
 
     for identifier in identifiers {
-        function
-            .identifiers
-            .insert(identifier.name.clone(), identifier);
+        if identifier.value != IdentifierValues::End {
+            function
+                .identifiers
+                .insert(identifier.name.clone(), identifier);
+        }
     }
 
-    Ok((remainder, function))
+    Ok((remainder_2, function))
 }

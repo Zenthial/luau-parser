@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod ast;
 mod comment_parser;
 mod datatype_parsers;
 mod function_parser;
@@ -13,6 +14,7 @@ mod tests {
     use std::{collections::HashMap, fs};
 
     use crate::{
+        ast::make_ast,
         comment_parser,
         datatype_parsers::number_parser::parse_number,
         datatype_parsers::string_parser::parse_string,
@@ -25,10 +27,17 @@ mod tests {
     };
 
     #[test]
+    fn test_ast() {
+        let contents = fs::read_to_string("tests/ast.lua").unwrap();
+        let (remainder, ast) = make_ast(&contents).unwrap();
+        println!("{}\n{:?}\n\n", remainder, ast);
+        assert_eq!(1, 1);
+    }
+
+    #[test]
     fn test_parse_function() {
-        let contents = fs::read_to_string("test.lua").unwrap();
+        let contents = fs::read_to_string("tests/function_test.lua").unwrap();
         let (_remainder, function) = parse_function(&contents).unwrap();
-        println!("{:?}", function);
         assert_eq!(
             function,
             Function {
