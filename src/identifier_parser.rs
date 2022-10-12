@@ -8,8 +8,8 @@ use super::datatype_parsers::string_parser::parse_string;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1},
-    combinator::{map, recognize},
+    character::complete::{alpha1, alphanumeric1, multispace0},
+    combinator::{map, opt, recognize},
     multi::many0_count,
     sequence::{pair, tuple},
     IResult,
@@ -61,14 +61,14 @@ pub fn parse_identifier_value(input: &str) -> IResult<&str, IdentifierValues> {
 }
 
 pub fn parse_identifier(input: &str) -> IResult<&str, Identifier> {
-    let (remainder, name) = identifier_name(input)?;
-    let (remainder_2, value) = parse_identifier_value(remainder)?;
+    let (remainder, (name, value, _)) =
+        tuple((identifier_name, parse_identifier_value, opt(multispace0)))(input)?;
 
     match value {
         IdentifierValues::Table(mut t) => {
             t.name = name.to_string();
             Ok((
-                remainder_2,
+                remainder,
                 Identifier {
                     name: name.to_string(),
                     value: IdentifierValues::Table(t),
@@ -76,7 +76,7 @@ pub fn parse_identifier(input: &str) -> IResult<&str, Identifier> {
             ))
         }
         _ => Ok((
-            remainder_2,
+            remainder,
             Identifier {
                 name: name.to_string(),
                 value,

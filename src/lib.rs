@@ -10,23 +10,84 @@ mod types;
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashMap, fs};
+
     use crate::{
         comment_parser,
         datatype_parsers::number_parser::parse_number,
         datatype_parsers::string_parser::parse_string,
         function_parser,
-        function_parser::FunctionArguments,
-        identifier_parser::{parse_identifier, IdentifierValues},
+        function_parser::{parse_function, Function, FunctionArguments},
+        identifier_parser::{parse_identifier, Identifier, IdentifierValues},
         line_parser,
         table_parser::{parse_table, Table, TableMember, TableMemberType},
         types::Types,
     };
 
     #[test]
+    fn test_parse_function() {
+        let contents = fs::read_to_string("test.lua").unwrap();
+        let (_remainder, function) = parse_function(&contents).unwrap();
+        println!("{:?}", function);
+        assert_eq!(
+            function,
+            Function {
+                name: "test".to_string(),
+                return_type: Types::Any,
+                arguments: vec![
+                    FunctionArguments {
+                        name: "a".to_string(),
+                        function_type: Types::Any
+                    },
+                    FunctionArguments {
+                        name: "b".to_string(),
+                        function_type: Types::Any
+                    }
+                ],
+                identifiers: HashMap::<String, Identifier>::from([
+                    (
+                        "two".to_string(),
+                        Identifier {
+                            name: "two".to_string(),
+                            value: IdentifierValues::String("2".to_string())
+                        }
+                    ),
+                    (
+                        "three".to_string(),
+                        Identifier {
+                            name: "three".to_string(),
+                            value: IdentifierValues::Bool(true)
+                        }
+                    ),
+                    (
+                        "one".to_string(),
+                        Identifier {
+                            name: "one".to_string(),
+                            value: IdentifierValues::Number(1.0)
+                        }
+                    ),
+                    (
+                        "four".to_string(),
+                        Identifier {
+                            name: "four".to_string(),
+                            value: IdentifierValues::Table(Table {
+                                name: "four".to_string(),
+                                members: vec![TableMember {
+                                    name: "one".to_string(),
+                                    is_a: TableMemberType::RawType(IdentifierValues::Number(1.0))
+                                }]
+                            })
+                        }
+                    )
+                ])
+            }
+        );
+    }
+
+    #[test]
     fn test_parse_table() {
         let input = "{a=1,\nb = 3\nc=\"tom\",d=true\ne={a=2.}}";
         let (_, table) = parse_table(input).unwrap();
-        println!("{:?}", table);
         assert_eq!(
             table.members,
             vec![
@@ -70,11 +131,11 @@ mod tests {
             vec![
                 FunctionArguments {
                     name: String::from("one"),
-                    function_type: Some(Types::Boolean),
+                    function_type: Types::Boolean,
                 },
                 FunctionArguments {
                     name: String::from("two"),
-                    function_type: Some(Types::Number),
+                    function_type: Types::Number,
                 }
             ]
         )
@@ -90,11 +151,11 @@ mod tests {
             vec![
                 FunctionArguments {
                     name: String::from("one"),
-                    function_type: Some(Types::Any),
+                    function_type: Types::Any,
                 },
                 FunctionArguments {
                     name: String::from("two"),
-                    function_type: Some(Types::Any),
+                    function_type: Types::Any,
                 }
             ]
         )
