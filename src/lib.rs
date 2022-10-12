@@ -1,29 +1,69 @@
 #![allow(dead_code)]
 
 mod comment_parser;
+mod datatype_parsers;
 mod function_parser;
-mod identifiers;
+mod identifier_parser;
 mod line_parser;
-mod number_parser;
-mod string_parser;
+mod table_parser;
 mod types;
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        comment_parser, function_parser,
+        comment_parser,
+        datatype_parsers::number_parser::parse_number,
+        datatype_parsers::string_parser::parse_string,
+        function_parser,
         function_parser::FunctionArguments,
-        identifiers::{identifier_name, parse_identifier, IdentifierValues},
+        identifier_parser::{parse_identifier, IdentifierValues},
         line_parser,
-        number_parser::parse_number,
-        string_parser::parse_string,
+        table_parser::{parse_table, Table, TableMember, TableMemberType},
         types::Types,
     };
 
     #[test]
-    fn test_parse_function_header_types() {
+    fn test_parse_table() {
+        let input = "{a=1,\nb = 3\nc=\"tom\",d=true\ne={a=2.}}";
+        let (_, table) = parse_table(input).unwrap();
+        println!("{:?}", table);
+        assert_eq!(
+            table.members,
+            vec![
+                TableMember {
+                    name: "a".to_string(),
+                    is_a: TableMemberType::RawType(IdentifierValues::Number(1.0))
+                },
+                TableMember {
+                    name: "b".to_string(),
+                    is_a: TableMemberType::RawType(IdentifierValues::Number(3.0))
+                },
+                TableMember {
+                    name: "c".to_string(),
+                    is_a: TableMemberType::RawType(IdentifierValues::String("tom".to_string()))
+                },
+                TableMember {
+                    name: "d".to_string(),
+                    is_a: TableMemberType::RawType(IdentifierValues::Bool(true))
+                },
+                TableMember {
+                    name: "e".to_string(),
+                    is_a: TableMemberType::NestedTable(Table {
+                        name: "".to_string(),
+                        members: vec![TableMember {
+                            name: "a".to_string(),
+                            is_a: TableMemberType::RawType(IdentifierValues::Number(2.0))
+                        },]
+                    })
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_function_definition_types() {
         let line = "function tester_function(one: boolean, two: number)";
-        let (_, function) = function_parser::parse_function_header(line).unwrap();
+        let (_, function) = function_parser::parse_function_definition(line).unwrap();
         assert_eq!(function.name, "tester_function");
         assert_eq!(
             function.arguments,
@@ -41,9 +81,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_function_header_any_types() {
+    fn test_parse_function_definition_any_types() {
         let line = "function tester_function(one, two)";
-        let (_, function) = function_parser::parse_function_header(line).unwrap();
+        let (_, function) = function_parser::parse_function_definition(line).unwrap();
         assert_eq!(function.name, "tester_function");
         assert_eq!(
             function.arguments,
@@ -126,14 +166,6 @@ mod tests {
         let str = "\"string thing   thing\"";
         let (_, parsed_str) = parse_string::<()>(str).unwrap();
         assert_eq!(parsed_str, "string thing   thing");
-    }
-
-    #[test]
-    fn test_identifier_name() {
-        let line = "local test = 1";
-        let (value, name) = identifier_name(line).unwrap();
-        assert_eq!(name, "test");
-        assert_eq!(value, "1");
     }
 
     #[test]

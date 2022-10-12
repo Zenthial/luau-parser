@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::{identifiers::Identifier, types::Types};
+use crate::{identifier_parser::Identifier, types::Types};
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionArguments {
@@ -18,7 +18,7 @@ pub struct FunctionArguments {
     pub function_type: Option<Types>,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct Function {
     pub name: String,
     pub arguments: Vec<FunctionArguments>,
@@ -86,7 +86,7 @@ fn argument_possibilities(input: &str) -> IResult<&str, Vec<String>> {
     )))(input)
 }
 
-pub fn parse_function_header(input: &str) -> IResult<&str, Function> {
+pub fn parse_function_definition(input: &str) -> IResult<&str, Function> {
     let (remainder, ((_, _), identifier_name, args)) = tuple((
         pair(tag("function"), tag(" ")),
         recognize(pair(
