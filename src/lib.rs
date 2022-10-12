@@ -1,51 +1,89 @@
-#![allow(unused)]
+#![allow(dead_code)]
 
+mod comment_parser;
+mod function_parser;
 mod identifiers;
 mod line_parser;
 mod number_parser;
 mod string_parser;
-
-use identifiers::identifier_name;
-use number_parser::parse_number;
-use std::sync::mpsc::RecvError;
-use string_parser::parse_string;
-
-use nom::character::complete::{multispace1, newline};
-use nom::combinator::opt;
-use nom::sequence::delimited;
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, char, one_of},
-    combinator::recognize,
-    multi::many0_count,
-    multi::{many0, many1},
-    sequence::{pair, tuple},
-    sequence::{preceded, terminated},
-    IResult,
-};
-
-fn newline_test(input: &str) -> IResult<&str, char> {
-    newline(input)
-}
+mod types;
 
 #[cfg(test)]
 mod tests {
-    use nom::character::complete::newline;
-
     use crate::{
-        identifier_name,
-        identifiers::{parse_identifier, IdentifierValues},
-        line_parser, newline_test, parse_number, parse_string,
+        comment_parser, function_parser,
+        function_parser::FunctionArguments,
+        identifiers::{identifier_name, parse_identifier, IdentifierValues},
+        line_parser,
+        number_parser::parse_number,
+        string_parser::parse_string,
+        types::Types,
     };
+
+    #[test]
+    fn test_parse_function_header_types() {
+        let line = "function tester_function(one: boolean, two: number)";
+        let (_, function) = function_parser::parse_function_header(line).unwrap();
+        assert_eq!(function.name, "tester_function");
+        assert_eq!(
+            function.arguments,
+            vec![
+                FunctionArguments {
+                    name: String::from("one"),
+                    function_type: Some(Types::Boolean),
+                },
+                FunctionArguments {
+                    name: String::from("two"),
+                    function_type: Some(Types::Number),
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn test_parse_function_header_any_types() {
+        let line = "function tester_function(one, two)";
+        let (_, function) = function_parser::parse_function_header(line).unwrap();
+        assert_eq!(function.name, "tester_function");
+        assert_eq!(
+            function.arguments,
+            vec![
+                FunctionArguments {
+                    name: String::from("one"),
+                    function_type: Some(Types::Any),
+                },
+                FunctionArguments {
+                    name: String::from("two"),
+                    function_type: Some(Types::Any),
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn test_comment_line() {
+        let line = "-- this is a comment\n";
+        let (_, comment) = comment_parser::parse_comment_line(line).unwrap();
+        assert_eq!(comment, " this is a comment");
+    }
+
+    #[test]
+    fn test_comment_block() {
+        let block = "--[[ block comment block comment\nblock comment block\ncomment]]";
+        let (_, comment) = comment_parser::parse_comment_block(block).unwrap();
+        assert_eq!(
+            comment,
+            " block comment block comment\nblock comment block\ncomment"
+        );
+    }
 
     #[test]
     fn test_multiline_identifiers() {
         let lines = "local test = 1\nlocal other_test = \"2\"\n";
         let (remaining_lines, line_1) = line_parser::parse_line(lines).unwrap();
-        let (remainder, identifier_1) = parse_identifier(line_1).unwrap();
+        let (_remainder, identifier_1) = parse_identifier(line_1).unwrap();
         let (_, line_2) = line_parser::parse_line(remaining_lines).unwrap();
-        let (remainder, identifier_2) = parse_identifier(line_2).unwrap();
+        let (_remainder, identifier_2) = parse_identifier(line_2).unwrap();
         assert_eq!(identifier_1.name, "test");
         assert_eq!(identifier_1.value, IdentifierValues::Number(1 as f32));
         assert_eq!(identifier_2.name, "other_test");
@@ -67,7 +105,7 @@ mod tests {
     #[test]
     fn test_identifier_number() {
         let identifier_string = "local test = 1";
-        let (remainder, identifier) = parse_identifier(identifier_string).unwrap();
+        let (_remainder, identifier) = parse_identifier(identifier_string).unwrap();
         assert_eq!(identifier.name, "test");
         assert_eq!(identifier.value, IdentifierValues::Number(1 as f32));
     }
@@ -75,7 +113,7 @@ mod tests {
     #[test]
     fn test_identifier_string() {
         let identifier_string = "local test = \"tom\"";
-        let (remainder, identifier) = parse_identifier(identifier_string).unwrap();
+        let (_remainder, identifier) = parse_identifier(identifier_string).unwrap();
         assert_eq!(identifier.name, "test");
         assert_eq!(
             identifier.value,
@@ -87,7 +125,6 @@ mod tests {
     fn test_string() {
         let str = "\"string thing   thing\"";
         let (_, parsed_str) = parse_string::<()>(str).unwrap();
-        println!("{}", parsed_str);
         assert_eq!(parsed_str, "string thing   thing");
     }
 

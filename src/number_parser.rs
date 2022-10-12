@@ -1,11 +1,9 @@
 use nom::{
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, char, one_of},
+    character::complete::{char, one_of},
     combinator::{map, opt, recognize},
-    multi::many0_count,
     multi::{many0, many1},
-    sequence::{pair, tuple},
+    sequence::tuple,
     sequence::{preceded, terminated},
     IResult,
 };

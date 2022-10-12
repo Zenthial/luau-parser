@@ -18,6 +18,7 @@ pub enum IdentifierValues {
     String(String),
 }
 
+#[derive(Debug)]
 pub struct Identifier {
     pub name: String,
     pub value: IdentifierValues,
