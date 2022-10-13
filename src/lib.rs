@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod ast;
+mod block_parser;
 mod comment_parser;
 mod datatype_parsers;
 mod function_parser;
@@ -15,6 +16,7 @@ mod tests {
 
     use crate::{
         ast::make_ast,
+        block_parser::{parse_block, Block, BlockType},
         comment_parser,
         datatype_parsers::number_parser::parse_number,
         datatype_parsers::string_parser::parse_string,
@@ -25,6 +27,67 @@ mod tests {
         table_parser::{parse_table, Table, TableMember, TableMemberType},
         types::Types,
     };
+
+    #[test]
+    fn test_blocks() {
+        let contents = fs::read_to_string("tests/blocks.lua").unwrap();
+        let (remainder, do_block) = parse_block(&contents).unwrap();
+        assert_eq!(
+            do_block,
+            Block {
+                block_type: BlockType::Do,
+                identifiers: HashMap::from([(
+                    "one".to_string(),
+                    Identifier {
+                        name: "one".to_string(),
+                        value: IdentifierValues::Number(1.)
+                    }
+                )])
+            }
+        );
+        let (r2, while_block) = parse_block(remainder).unwrap();
+        assert_eq!(
+            while_block,
+            Block {
+                block_type: BlockType::While,
+                identifiers: HashMap::from([(
+                    "one".to_string(),
+                    Identifier {
+                        name: "one".to_string(),
+                        value: IdentifierValues::Number(1.)
+                    }
+                )])
+            }
+        );
+        let (r3, repeat_block) = parse_block(r2).unwrap();
+        assert_eq!(
+            repeat_block,
+            Block {
+                block_type: BlockType::Repeat,
+                identifiers: HashMap::from([(
+                    "one".to_string(),
+                    Identifier {
+                        name: "one".to_string(),
+                        value: IdentifierValues::Number(1.)
+                    }
+                )])
+            }
+        );
+        let (_, if_block) = parse_block(r3).unwrap();
+        assert_eq!(
+            if_block,
+            Block {
+                block_type: BlockType::If,
+                identifiers: HashMap::from([(
+                    "one".to_string(),
+                    Identifier {
+                        name: "one".to_string(),
+                        value: IdentifierValues::Nil
+                    }
+                )])
+            }
+        )
+    }
 
     #[test]
     fn test_ast() {

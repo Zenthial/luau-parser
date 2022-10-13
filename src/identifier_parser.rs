@@ -27,6 +27,7 @@ pub enum IdentifierValues {
     If,
     Then,
     While,
+    Nil,
     Do,
     Return(String),
 }
@@ -73,6 +74,7 @@ fn identifier_name(input: &str) -> IResult<&str, &str> {
 
 pub fn parse_identifier_value(input: &str) -> IResult<&str, IdentifierValues> {
     alt((
+        map(tag("nil"), |_| IdentifierValues::Nil),
         map(parse_string, |s| IdentifierValues::String(s)),
         map(parse_number, |n| IdentifierValues::Number(n)),
         map(parse_boolean, |b| IdentifierValues::Bool(b)),
